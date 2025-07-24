@@ -1,0 +1,19 @@
+{
+    "accuracy_percent": 0.0,
+    "total_trades": 1,
+    "wins": 0,
+    "losses": 1,
+    "win_rate": 0.0,
+    "last_updated": "2025-07-24T19:22:34.192578Z",
+    "evaluated_trades": [
+        {
+            "symbol": "SOLUSDT",
+            "side": "SELL",
+            "entry": 185.09,
+            "exit": 185.09,
+            "pnl": 0.0,
+            "result": "LOSS",
+            "timestamp": "2025-07-23 20:40:55"
+        }
+    ]
+}

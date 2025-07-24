@@ -1,0 +1,265 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>📺 Crypto AI Swing Bot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="900">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0e1117;
+      color: #e0e0e0;
+      padding: 20px;
+    }
+    h1, h2 {
+      color: #00ffd5;
+      border-bottom: 2px solid #00ffd5;
+      padding-bottom: 5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      margin-bottom: 30px;
+    }
+    th, td {
+      border: 1px solid #444;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #1f1f1f;
+      color: #ffffff;
+    }
+    tr:nth-child(even) {
+      background-color: #1a1a1a;
+    }
+    p {
+      font-size: 18px;
+      color: #00ffd5;
+    }
+    .green { color: #00ff99; font-weight: bold; }
+    .yellow { color: #ffd700; font-weight: bold; }
+    .red { color: #ff4c4c; font-weight: bold; }
+    .chip {
+      display: inline-block;
+      background-color: #1f1f1f;
+      padding: 6px 12px;
+      border-radius: 15px;
+      margin: 5px 6px;
+      font-weight: bold;
+      color: #00ffd5;
+      border: 1px solid #00ffd5;
+    }
+    ul.news-list {
+      list-style: none;
+      padding-left: 0;
+    }
+    ul.news-list li {
+      margin-bottom: 10px;
+      background-color: #1a1a1a;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    ul.news-list li a {
+      color: #00ffd5;
+      text-decoration: none;
+    }
+    ul.news-list li a:hover {
+      text-decoration: underline;
+    }
+    @media (max-width: 600px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      th {
+        position: sticky;
+        top: 0;
+      }
+      td {
+        border: none;
+        border-bottom: 1px solid #333;
+        position: relative;
+        padding-left: 50%;
+        text-align: left;
+      }
+      td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        width: 45%;
+        padding-left: 10px;
+        font-weight: bold;
+        color: #ccc;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📺 Crypto AI Swing Bot Dashboard</h1>
+
+  <h2>🧠 News Sentiment</h2>
+  <p>{{ data.news_sentiment }}</p>
+
+  <p>
+    🧪 Confidence:
+    {% if data.confidence >= 70 %}
+      <span class="green">{{ data.confidence }}%</span>
+    {% elif data.confidence >= 50 %}
+      <span class="yellow">{{ data.confidence }}%</span>
+    {% else %}
+      <span class="red">{{ data.confidence }}%</span>
+    {% endif %}
+  </p>
+
+  <h2>📰 News Affected Coins</h2>
+  {% if data.affected_symbols %}
+    {% for symbol in data.affected_symbols %}
+      <span class="chip">🚨 {{ symbol }}</span>
+    {% endfor %}
+  {% else %}
+    <p>No major impact detected.</p>
+  {% endif %}
+
+  <h2>🗞 Latest News Headlines</h2>
+  {% if data.news_headlines %}
+    <ul class="news-list">
+      {% for item in data.news_headlines %}
+        <li>📰 <a href="{{ item.url }}" target="_blank">{{ item.title }}</a></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No recent headlines available.</p>
+  {% endif %}
+
+  <h2>📈 Latest Signals</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Symbol</th>
+        <th>Signal</th>
+        <th>MACD</th>
+        <th>EMA</th>
+        <th>OrderBlock</th>
+        <th>BOS</th>
+        <th>Timeframe</th>
+        <th>Reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in data.symbols %}
+      <tr>
+        <td data-label="Symbol">{{ s.symbol }}</td>
+        <td data-label="Signal">
+          {% if s.signal == "BUY" %}
+            <span class="green">✅ BUY</span>
+          {% elif s.signal == "SELL" %}
+            <span class="red">❌ SELL</span>
+          {% else %}
+            <span class="yellow">WAIT</span>
+          {% endif %}
+        </td>
+        <td data-label="MACD">{{ s.details[s.timeframe].macd_signal }}</td>
+        <td data-label="EMA">
+          {% if s.details[s.timeframe].ema_signal == "BUY" %}
+            <span class="green">BUY</span>
+          {% elif s.details[s.timeframe].ema_signal == "SELL" %}
+            <span class="red">SELL</span>
+          {% else %}
+            <span class="yellow">NEUTRAL</span>
+          {% endif %}
+        </td>
+        <td data-label="OrderBlock">{{ s.details[s.timeframe].order_block }}</td>
+        <td data-label="BOS">
+          {% if s.details[s.timeframe].bos and s.details[s.timeframe].bos[-1] %}
+            {{ s.details[s.timeframe].bos[-1].type }}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td data-label="Timeframe">{{ s.timeframe }}</td>
+        <td data-label="Reason">{{ s.reason }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>💼 Portfolio</h2>
+  <table>
+    <thead>
+      <tr><th>Symbol</th><th>Entry</th><th>Amount</th><th>TP</th><th>SL</th></tr>
+    </thead>
+    <tbody>
+      {% for sym, p in data.positions.items() %}
+      <tr>
+        <td data-label="Symbol">{{ sym }}</td>
+        <td data-label="Entry">{{ p.entry_price }}</td>
+        <td data-label="Amount">{{ p.amount }}</td>
+        <td data-label="TP">{{ p.take_profit }}</td>
+        <td data-label="SL">{{ p.stop_loss }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>💰 Balance & 🎯 Accuracy</h2>
+  <p>💵 Balance: ${{ data.balance }}</p>
+  <p>
+    🎯 Accuracy:
+    {% if data.accuracy >= 70 %}
+      <span class="green">{{ data.accuracy }}%</span> ✅
+    {% elif data.accuracy >= 50 %}
+      <span class="yellow">{{ data.accuracy }}%</span> ⚠️
+    {% else %}
+      <span class="red">{{ data.accuracy or 0 }}%</span> ❌
+    {% endif %}
+  </p>
+
+  <h2>📊 Trade Performance</h2>
+  <p>📈 Total Trades: <strong>{{ data.total_trades }}</strong></p>
+  <p>✅ Wins: <span class="green">{{ data.wins }}</span></p>
+  <p>❌ Losses: <span class="red">{{ data.losses }}</span></p>
+  <p>🥇 Win Rate:
+    {% if data.win_rate >= 70 %}
+      <span class="green">{{ data.win_rate }}%</span>
+    {% elif data.win_rate >= 50 %}
+      <span class="yellow">{{ data.win_rate }}%</span>
+    {% else %}
+      <span class="red">{{ data.win_rate }}%</span>
+    {% endif %}
+  </p>
+
+  <h2>🧾 Last 5 Evaluated Trades</h2>
+  {% if data.evaluated_trades %}
+  <table>
+    <thead>
+      <tr><th>Symbol</th><th>Side</th><th>Entry</th><th>Exit</th><th>PnL</th><th>Result</th></tr>
+    </thead>
+    <tbody>
+      {% for t in data.evaluated_trades %}
+      <tr>
+        <td>{{ t.symbol }}</td>
+        <td>{{ t.side }}</td>
+        <td>{{ t.entry }}</td>
+        <td>{{ t.exit }}</td>
+        <td>{{ t.pnl }}</td>
+        <td>
+          {% if t.result == "WIN" %}
+            <span class="green">{{ t.result }}</span>
+          {% else %}
+            <span class="red">{{ t.result }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>No recent trade results to display.</p>
+  {% endif %}
+
+</body>
+</html>
