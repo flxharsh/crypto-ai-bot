@@ -106,12 +106,14 @@
 
   <p>
     🧪 Confidence:
-    {% if data.confidence >= 70 %}
+    {% if data.confidence is defined and data.confidence >= 70 %}
       <span class="green">{{ data.confidence }}%</span>
-    {% elif data.confidence >= 50 %}
+    {% elif data.confidence is defined and data.confidence >= 50 %}
       <span class="yellow">{{ data.confidence }}%</span>
-    {% else %}
+    {% elif data.confidence is defined %}
       <span class="red">{{ data.confidence }}%</span>
+    {% else %}
+      <span class="yellow">N/A</span>
     {% endif %}
   </p>
 
@@ -188,6 +190,7 @@
   </table>
 
   <h2>💼 Portfolio</h2>
+  {% if data.positions %}
   <table>
     <thead>
       <tr><th>Symbol</th><th>Entry</th><th>Amount</th><th>TP</th><th>SL</th></tr>
@@ -204,17 +207,24 @@
       {% endfor %}
     </tbody>
   </table>
+  {% else %}
+    <p>No open positions found.</p>
+  {% endif %}
 
   <h2>💰 Balance & 🎯 Accuracy</h2>
   <p>💵 Balance: ${{ data.balance }}</p>
   <p>
     🎯 Accuracy:
-    {% if data.accuracy >= 70 %}
-      <span class="green">{{ data.accuracy }}%</span> ✅
-    {% elif data.accuracy >= 50 %}
-      <span class="yellow">{{ data.accuracy }}%</span> ⚠️
+    {% if data.accuracy is defined %}
+      {% if data.accuracy >= 70 %}
+        <span class="green">{{ data.accuracy }}%</span> ✅
+      {% elif data.accuracy >= 50 %}
+        <span class="yellow">{{ data.accuracy }}%</span> ⚠️
+      {% else %}
+        <span class="red">{{ data.accuracy }}%</span> ❌
+      {% endif %}
     {% else %}
-      <span class="red">{{ data.accuracy or 0 }}%</span> ❌
+      <span class="yellow">N/A</span>
     {% endif %}
   </p>
 
@@ -223,14 +233,19 @@
   <p>✅ Wins: <span class="green">{{ data.wins }}</span></p>
   <p>❌ Losses: <span class="red">{{ data.losses }}</span></p>
   <p>🥇 Win Rate:
-    {% if data.win_rate >= 70 %}
-      <span class="green">{{ data.win_rate }}%</span>
-    {% elif data.win_rate >= 50 %}
-      <span class="yellow">{{ data.win_rate }}%</span>
+    {% if data.win_rate is defined %}
+      {% if data.win_rate >= 70 %}
+        <span class="green">{{ data.win_rate }}%</span>
+      {% elif data.win_rate >= 50 %}
+        <span class="yellow">{{ data.win_rate }}%</span>
+      {% else %}
+        <span class="red">{{ data.win_rate }}%</span>
+      {% endif %}
     {% else %}
-      <span class="red">{{ data.win_rate }}%</span>
+      <span class="yellow">N/A</span>
     {% endif %}
   </p>
+
 
   <h2>🧾 Last 5 Evaluated Trades</h2>
   {% if data.evaluated_trades %}

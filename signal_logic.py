@@ -1,35 +1,40 @@
 import sys
 sys.path.append('./strategy')
 
-from macd import detect_macd_signal
+import pandas as pd
+from ta.trend import MACD, EMAIndicator
+from ta.momentum import RSIIndicator
+
 from strategy.order_block import detect_order_blocks
 from strategy.bos import detect_bos
-import pandas as pd
 
-# 🔄 EMA 9/20 Cross Detection
+# 🔄 EMA 9/20 Cross Detection using `ta`
 def analyze_ema_signal(df):
-    df['EMA_9'] = df['close'].ewm(span=9, adjust=False).mean()
-    df['EMA_20'] = df['close'].ewm(span=20, adjust=False).mean()
+    ema_9 = EMAIndicator(close=df['close'], window=9).ema_indicator()
+    ema_20 = EMAIndicator(close=df['close'], window=20).ema_indicator()
 
-    if df['EMA_9'].iloc[-2] < df['EMA_20'].iloc[-2] and df['EMA_9'].iloc[-1] > df['EMA_20'].iloc[-1]:
+    if ema_9.iloc[-2] < ema_20.iloc[-2] and ema_9.iloc[-1] > ema_20.iloc[-1]:
         return "BUY"
-    elif df['EMA_9'].iloc[-2] > df['EMA_20'].iloc[-2] and df['EMA_9'].iloc[-1] < df['EMA_20'].iloc[-1]:
+    elif ema_9.iloc[-2] > ema_20.iloc[-2] and ema_9.iloc[-1] < ema_20.iloc[-1]:
         return "SELL"
     else:
         return "NEUTRAL"
 
-# 📊 RSI Calculation
+# 💹 MACD Signal using `ta`
+def detect_macd_signal(df):
+    macd = MACD(close=df['close'])
+    macd_diff = macd.macd_diff()
+
+    if macd_diff.iloc[-2] < 0 and macd_diff.iloc[-1] > 0:
+        return "BUY"
+    elif macd_diff.iloc[-2] > 0 and macd_diff.iloc[-1] < 0:
+        return "SELL"
+    else:
+        return "NEUTRAL"
+
+# 📊 RSI Calculation using `ta`
 def get_rsi(df, period=14):
-    delta = df['close'].diff()
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-
-    avg_gain = gain.rolling(window=period).mean()
-    avg_loss = loss.rolling(window=period).mean()
-
-    rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
+    return RSIIndicator(close=df['close'], window=period).rsi()
 
 # 🧠 Final Signal Generator per Timeframe
 def generate_trade_signal(symbol, df, timeframe, news_sentiment):
@@ -38,12 +43,10 @@ def generate_trade_signal(symbol, df, timeframe, news_sentiment):
 
         # 1️⃣ MACD
         macd_signal = detect_macd_signal(df)
-        macd_signal = macd_signal.upper() if macd_signal else "NEUTRAL"
         print(f"💹 MACD: {macd_signal}")
 
         # 2️⃣ Order Block
         order_block = detect_order_blocks(df)
-        order_block = order_block.upper() if order_block else "NEUTRAL"
         print(f"📦 Order Block: {order_block}")
 
         # 3️⃣ BOS
@@ -55,7 +58,7 @@ def generate_trade_signal(symbol, df, timeframe, news_sentiment):
         ema_signal = analyze_ema_signal(df)
         print(f"📈 EMA 9/20: {ema_signal}")
 
-        # 5️⃣ RSI Filter
+        # 5️⃣ RSI
         rsi_series = get_rsi(df)
         rsi_latest = rsi_series.iloc[-1]
         print(f"📊 RSI: {rsi_latest:.2f}")
@@ -81,7 +84,7 @@ def generate_trade_signal(symbol, df, timeframe, news_sentiment):
             signal = "SELL"
             reason = "MACD + OB + EMA + BOS_DOWN + RSI aligned"
 
-        # 🔁 Fallback
+        # 🔁 Fallbacks
         elif ema_signal == "BUY" and last_bos_type == "BOS_UP":
             confirmed = True
             signal = "BUY"

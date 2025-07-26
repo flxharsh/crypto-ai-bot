@@ -5,24 +5,24 @@ from datetime import datetime, timedelta
 
 def fetch_price_data(symbol: str, interval: str = "1h", days: int = 90, save_csv=False):
     """
-    Fetch OHLCV data from Binance for a symbol and interval, over a custom number of days.
-    Automatically paginates through historical candles.
+    Fetch historical OHLCV data from Binance.
 
     Params:
-    - symbol: e.g., "BTCUSDT"
-    - interval: e.g., "1h", "30m", "1d"
-    - days: how many past days of data to fetch
-    - save_csv: True to save CSV
+    - symbol: "BTCUSDT"
+    - interval: "1h", "30m", "1d"
+    - days: Number of past days to fetch
+    - save_csv: If True, saves the result as a CSV file
 
     Returns:
-    - pandas DataFrame
+    - DataFrame with columns: open, high, low, close, volume
     """
     base_url = "https://api.binance.com/api/v3/klines"
+    limit = 1000
     end_time = int(time.time() * 1000)
     start_time = int((datetime.utcnow() - timedelta(days=days)).timestamp() * 1000)
-    limit = 1000
 
     all_data = []
+    print(f"📡 Fetching {symbol} | Interval: {interval} | Days: {days}")
 
     while start_time < end_time:
         params = {
@@ -39,21 +39,19 @@ def fetch_price_data(symbol: str, interval: str = "1h", days: int = 90, save_csv
                 raw_data = response.json()
                 break
             except Exception as e:
-                print(f"❌ Error fetching {symbol} ({interval}): {e}")
-                time.sleep(2)
+                print(f"❌ Attempt {attempt+1} failed: {e}")
+                time.sleep(1.5)
         else:
-            raise Exception(f"Failed after 3 retries for {symbol}")
+            raise Exception(f"❌ Failed 3 times while fetching {symbol} {interval}")
 
         if not raw_data:
-            print("⚠️ No more data returned.")
+            print("⚠️ No more data returned by Binance.")
             break
 
         all_data += raw_data
-        last_time = raw_data[-1][0]
-        start_time = last_time + 1  # Avoid duplicate candle
-
-        # Avoid hitting rate limits
-        time.sleep(0.3)
+        last_candle = raw_data[-1][0]
+        start_time = last_candle + 1
+        time.sleep(0.3)  # to avoid rate limit
 
     if not all_data:
         raise ValueError(f"⚠️ No data found for {symbol}")
@@ -64,7 +62,7 @@ def fetch_price_data(symbol: str, interval: str = "1h", days: int = 90, save_csv
         "taker_buy_base", "taker_buy_quote", "ignore"
     ])
 
-    # Clean + format
+    # Format and clean
     df["open_time"] = pd.to_datetime(df["open_time"], unit="ms")
     df["close_time"] = pd.to_datetime(df["close_time"], unit="ms")
     df[["open", "high", "low", "close", "volume"]] = df[["open", "high", "low", "close", "volume"]].astype(float)
@@ -73,6 +71,7 @@ def fetch_price_data(symbol: str, interval: str = "1h", days: int = 90, save_csv
     if save_csv:
         filename = f"{symbol}_{interval}_last_{days}_days.csv"
         df.to_csv(filename)
-        print(f"📁 Saved: {filename}")
+        print(f"✅ Saved to CSV: {filename}")
 
+    print(f"✅ Loaded: {symbol} | {len(df)} candles")
     return df

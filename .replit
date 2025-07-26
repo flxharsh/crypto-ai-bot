@@ -3,7 +3,7 @@ modules = ["python-3.11"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["glibcLocales"]
+packages = ["c-ares", "cacert", "cairo", "cargo", "chromedriver", "ffmpeg-full", "freetype", "ghostscript", "glibcLocales", "gmp", "gobject-introspection", "gtk3", "lcms2", "libcxx", "libffi", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "pkg-config", "qhull", "rustc", "tcl", "tk", "zlib"]
 
 [unitTest]
 language = "python3"
@@ -18,3 +18,7 @@ deploymentTarget = "cloudrun"
 [[ports]]
 localPort = 81
 externalPort = 80
+
+[[ports]]
+localPort = 10000
+externalPort = 3000

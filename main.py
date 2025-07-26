@@ -49,7 +49,7 @@ def run_full_analysis():
         "symbols": [],
         "balance": portfolio.get("balance", 0),
         "news_sentiment": news_sentiment,
-        "confidence": round(news_confidence * 100, 2),
+        "confidence": round(news_confidence * 100, 2) if news_confidence else 0,
         "positions": portfolio.get("positions", {}),
         "accuracy": accuracy_percent,
         "affected_symbols": affected_symbols,
@@ -103,7 +103,7 @@ def run_full_analysis():
                     print(f"🔻 Auto {reason} executed for {symbol} at {sell_price}")
                 continue
 
-        # ✅ Buy
+        # ✅ Buy Logic
         if final["signal"] == "BUY" and not check_position(portfolio, symbol):
             tf = final["timeframe"]
             live_price = get_price(symbol.replace("USDT", "/USDT"))
@@ -112,7 +112,7 @@ def run_full_analysis():
             if live_price and usdt_balance > 0:
                 capital = usdt_balance * 0.05
                 amount = round(capital / live_price, 5)
-                if amount >= 0.001:  # 🔒 Binance min precision fix
+                if amount >= 0.001:
                     placed = place_order(symbol.replace("USDT", "/USDT"), "buy", amount)
                     if placed:
                         portfolio = update_position(portfolio, symbol, "BUY", timeframe=tf)
@@ -124,7 +124,7 @@ def run_full_analysis():
             else:
                 print(f"⚠️ Skipping trade: price or balance missing for {symbol}")
 
-        # ✅ Sell
+        # ✅ Sell Logic
         elif final["signal"] == "SELL" and check_position(portfolio, symbol):
             sell_price = get_price(symbol.replace("USDT", "/USDT"))
             if sell_price:
@@ -138,7 +138,6 @@ def run_full_analysis():
             else:
                 print(f"⚠️ Skipping SELL for {symbol} due to missing price")
 
-    # ✅ Summary
     print("\n📊 Portfolio Summary")
     print(f"💵 Balance: ${portfolio.get('balance', 0):.2f}")
     if portfolio.get("positions"):
@@ -160,6 +159,7 @@ def schedule_loop():
         time.sleep(1)
 
 if __name__ == "__main__":
+    run_full_analysis()  # ✅ <-- THIS line ensures the dashboard works instantly
     threading.Thread(target=schedule_loop).start()
-    run_full_analysis()
-    app.run(host="0.0.0.0", port=81)
+    app.run(host="0.0.0.0", port=10000)
+
