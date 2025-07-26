@@ -1,32 +1,31 @@
 import ccxt
 import os
 
-# 🔐 Load API keys securely from environment
+# 🔐 Load API keys securely from environment variables
 api_key = os.getenv("BINANCE_API_KEY")
 api_secret = os.getenv("BINANCE_API_SECRET")
 
-# ✅ Connect to Binance Futures (LIVE)
+# ✅ Initialize Binance Futures client (LIVE)
 binance = ccxt.binance({
     'apiKey': api_key,
     'secret': api_secret,
     'enableRateLimit': True,
     'options': {
-        'defaultType': 'future',
-        'defaultMarket': 'linear'  # Force USDT-M Futures only
+        'defaultType': 'future',        # USDT-M Futures
+        'defaultMarket': 'linear',
+        'adjustForTimeDifference': True
     }
 })
 
-# 🚫 REMOVE sandbox override — we are in LIVE mode now
-# binance.set_sandbox_mode(True)  ←❌ Don't use this
-# binance.urls[...]               ←❌ Don't override URLs in LIVE mode
+# ⚠️ DO NOT set sandbox or override URLs in LIVE mode
 
-# 🔁 Format symbol for Binance
+# 🧠 Format symbol correctly: BTCUSDT → BTC/USDT
 def format_symbol(symbol):
     if "/" in symbol:
         return symbol
     return f"{symbol[:-4]}/{symbol[-4:]}"  # BTCUSDT → BTC/USDT
 
-# 📈 Fetch current market price
+# 📉 Fetch current market price
 def get_price(symbol):
     try:
         market_symbol = format_symbol(symbol)
@@ -38,7 +37,7 @@ def get_price(symbol):
         print(f"⚠️ Error fetching price for {symbol}: {e}")
         return None
 
-# 💵 Get USDT balance
+# 💰 Get current available balance in USDT
 def get_balance(asset="USDT"):
     try:
         balance = binance.fetch_balance()
@@ -49,7 +48,7 @@ def get_balance(asset="USDT"):
         print(f"⚠️ Error fetching balance for {asset}: {e}")
         return 0.0
 
-# ❌ Cancel all open orders
+# ❌ Cancel all open orders for a symbol
 def cancel_all_open_orders(symbol):
     try:
         market_symbol = format_symbol(symbol)
@@ -60,10 +59,10 @@ def cancel_all_open_orders(symbol):
     except Exception as e:
         print(f"⚠️ Failed to cancel orders for {symbol}: {e}")
 
-# 🛒 Place order
+# 🛒 Place market or limit order
 def place_order(symbol, side, amount, price=None, order_type="market", max_slippage_pct=0.5):
     try:
-        side = side.upper()
+        side = side.lower()
         order_type = order_type.lower()
         market_symbol = format_symbol(symbol)
 
@@ -73,14 +72,15 @@ def place_order(symbol, side, amount, price=None, order_type="market", max_slipp
                 slippage = abs(price - current_price) / price * 100
                 if slippage > max_slippage_pct:
                     raise Exception(f"❌ Slippage too high ({slippage:.2f}%) for BUY {symbol}")
-            print(f"📤 Placing MARKET {side} {amount} {symbol}")
+            print(f"📤 Placing MARKET {side.upper()} order for {amount} {symbol}")
             order = binance.create_market_order(symbol=market_symbol, side=side, amount=amount)
 
         elif order_type == "limit":
             if price is None:
                 raise ValueError("❌ Price required for limit order.")
-            print(f"📤 Placing LIMIT {side} {amount} {symbol} @ {price}")
+            print(f"📤 Placing LIMIT {side.upper()} order for {amount} {symbol} @ {price}")
             order = binance.create_limit_order(symbol=market_symbol, side=side, amount=amount, price=price)
+
         else:
             raise ValueError(f"❌ Unsupported order type: {order_type}")
 
