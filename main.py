@@ -51,7 +51,7 @@ def run_full_analysis():
             "balance": portfolio.get("balance", 0),
             "news_sentiment": news_sentiment,
             "confidence": round(news_confidence * 100, 2) if news_confidence else 0,
-            "positions": portfolio.get("positions", {}),
+            "portfolio": portfolio.get("positions", {}),
             "accuracy": accuracy_percent,
             "affected_symbols": affected_symbols,
             "news_headlines": news_headlines,
@@ -71,7 +71,7 @@ def run_full_analysis():
                     result = analyze_technical(symbol, df, df, news_sentiment)
                     tf_result = result["details"][tf]
                     all_timeframes[tf] = tf_result
-                    print(f"✅ {symbol} @ {tf} | MACD: {tf_result.get('macd_signal')} | EMA: {tf_result.get('ema_signal')} | OB: {tf_result.get('order_block')} | BOS: {len(tf_result.get('bos', []))}")
+                    print(f"✅ {symbol} @ {tf} | Signal: {tf_result.get('signal')} | MACD: {tf_result.get('macd_signal')} | EMA: {tf_result.get('ema_signal')} | RSI: {round(tf_result.get('rsi', 0), 2)}")
                 except Exception as e:
                     print(f"❌ Error analyzing {symbol} on {tf}: {e}")
 
