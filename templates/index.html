@@ -146,7 +146,7 @@
         <th>EMA</th>
         <th>RSI</th>
         <th>Bollinger</th>
-        <th>Ichimoku</th>
+        <th>Pattern</th>
         <th>Volume</th>
         <th>Timeframe</th>
         <th>Reason</th>
@@ -175,7 +175,13 @@
           {% endif %}
         </td>
         <td data-label="Bollinger">{{ s.details[s.timeframe].bollinger }}</td>
-        <td data-label="Ichimoku">{{ s.details[s.timeframe].ichimoku }}</td>
+        <td data-label="Pattern">
+          {% if s.details[s.timeframe].pattern %}
+            {{ s.details[s.timeframe].pattern }}
+          {% else %}
+            N/A
+          {% endif %}
+        </td>
         <td data-label="Volume">
           {% if s.details[s.timeframe].volume_ok is defined %}
             {% if s.details[s.timeframe].volume_ok %}

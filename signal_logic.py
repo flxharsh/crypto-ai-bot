@@ -2,7 +2,7 @@ import sys
 sys.path.append('./strategy')
 
 import pandas as pd
-from ta.trend import MACD, EMAIndicator, IchimokuIndicator, ADXIndicator
+from ta.trend import MACD, EMAIndicator, ADXIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import BollingerBands
 
@@ -69,23 +69,26 @@ def analyze_bollinger_signal(df):
         print(f"⚠️ Bollinger error: {e}")
         return "NEUTRAL"
 
-# ☁️ Ichimoku Cloud Signal
-def analyze_ichimoku_signal(df):
+# 🕯 Pattern Detector (Basic)
+def detect_pattern(df):
     try:
-        ichimoku = IchimokuIndicator(high=df['high'], low=df['low'])
-        span_a = ichimoku.ichimoku_a()
-        span_b = ichimoku.ichimoku_b()
-        close = df['close']
+        last = df.iloc[-1]
+        prev = df.iloc[-2]
 
-        if close.iloc[-1] > max(span_a.iloc[-1], span_b.iloc[-1]):
-            return "BUY"
-        elif close.iloc[-1] < min(span_a.iloc[-1], span_b.iloc[-1]):
-            return "SELL"
+        # Doji
+        if abs(last['open'] - last['close']) / (last['high'] - last['low'] + 1e-9) < 0.1:
+            return "Doji"
+        # Hammer
+        elif last['close'] > last['open'] and (last['low'] < min(prev['low'], last['open'] - (last['high'] - last['close']) * 2)):
+            return "Hammer"
+        # Shooting Star
+        elif last['open'] > last['close'] and (last['high'] > max(prev['high'], last['close'] + (last['open'] - last['low']) * 2)):
+            return "Shooting Star"
         else:
-            return "NEUTRAL"
+            return "None"
     except Exception as e:
-        print(f"⚠️ Ichimoku error: {e}")
-        return "NEUTRAL"
+        print(f"⚠️ Pattern error: {e}")
+        return "None"
 
 # 🧠 Final Signal Generator per Timeframe
 def generate_trade_signal(symbol, df, timeframe, news_sentiment):
@@ -97,11 +100,11 @@ def generate_trade_signal(symbol, df, timeframe, news_sentiment):
         rsi_series = get_rsi(df)
         rsi_latest = rsi_series.iloc[-1]
         boll_signal = analyze_bollinger_signal(df)
-        ichi_signal = analyze_ichimoku_signal(df)
+        pattern = detect_pattern(df)
         vol_ok = is_volume_spike(df)
         adx_value = get_adx(df)
 
-        print(f"📉 MACD: {macd_signal} | EMA: {ema_signal} | RSI: {rsi_latest:.2f} | BB: {boll_signal} | Ichi: {ichi_signal} | Volume: {vol_ok} | ADX: {adx_value}")
+        print(f"📉 MACD: {macd_signal} | EMA: {ema_signal} | RSI: {rsi_latest:.2f} | BB: {boll_signal} | Pattern: {pattern} | Volume: {vol_ok} | ADX: {adx_value}")
 
         signal = "WAIT"
         reason = "No strong confirmation yet"
@@ -109,7 +112,7 @@ def generate_trade_signal(symbol, df, timeframe, news_sentiment):
 
         if news_sentiment:
             ns = news_sentiment.lower()
-            indicators = [macd_signal, ema_signal, boll_signal, ichi_signal]
+            indicators = [macd_signal, ema_signal, boll_signal]
 
             indicator_match = any(ind == "BUY" for ind in indicators) if ns == "bullish" else any(ind == "SELL" for ind in indicators)
             volume_or_adx = vol_ok or (adx_value is not None and adx_value >= 20)
@@ -117,11 +120,11 @@ def generate_trade_signal(symbol, df, timeframe, news_sentiment):
             if ns == "bullish" and indicator_match and volume_or_adx:
                 confirmed = True
                 signal = "BUY"
-                reason = "News BULLISH + 1 indicator + Volume or ADX confirm"
+                reason = f"News BULLISH + indicator + Volume/ADX + Pattern: {pattern}"
             elif ns == "bearish" and indicator_match and volume_or_adx:
                 confirmed = True
                 signal = "SELL"
-                reason = "News BEARISH + 1 indicator + Volume or ADX confirm"
+                reason = f"News BEARISH + indicator + Volume/ADX + Pattern: {pattern}"
 
         return {
             "symbol": symbol,
@@ -130,7 +133,7 @@ def generate_trade_signal(symbol, df, timeframe, news_sentiment):
             "ema_signal": ema_signal,
             "rsi": rsi_latest,
             "bollinger": boll_signal,
-            "ichimoku": ichi_signal,
+            "pattern": pattern,
             "adx": adx_value,
             "volume_ok": vol_ok,
             "confirmed": confirmed,
@@ -147,7 +150,7 @@ def generate_trade_signal(symbol, df, timeframe, news_sentiment):
             "ema_signal": "NEUTRAL",
             "rsi": None,
             "bollinger": "NEUTRAL",
-            "ichimoku": "NEUTRAL",
+            "pattern": "None",
             "adx": None,
             "volume_ok": False,
             "confirmed": False,
